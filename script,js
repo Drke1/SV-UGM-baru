@@ -1,0 +1,210 @@
+document.addEventListener("DOMContentLoaded", () => {
+  
+  // --- Elemen-elemen Penting ---
+  const headerWrap = document.querySelector(".header-wrap");
+  const navToggle = document.querySelector(".nav-toggle");
+  const mainNav = document.getElementById("primary-navigation");
+  const navLinks = document.querySelectorAll(".main-nav a[href^='#']");
+  const sections = document.querySelectorAll("main section[id]");
+
+  // Elemen untuk animasi hero (DITAMBAHKAN)
+  const heroSection = document.getElementById("home");
+  const heroGedungImg = document.getElementById("hero-gedung");
+
+  // Elemen untuk overlay
+  const openOverlayBtn1 = document.getElementById("btn-open-overlay");
+  const openOverlayBtn2 = document.getElementById("btn-open-overlay-2");
+  const overlay = document.getElementById("overlay");
+  const overlayCloseBtn = document.getElementById("overlay-close");
+  const overlayIframe = document.getElementById("overlay-iframe");
+  const model3D_URL = "gedung.html";
+
+  // --- Fungsi Utilitas ---
+  const throttle = (func, limit) => {
+    let inThrottle;
+    return function() {
+      const args = arguments;
+      const context = this;
+      if (!inThrottle) {
+        func.apply(context, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  };
+
+  // ===================================================================
+  // --- EFEK INTERAKTIF BARU: Parallax 3D Mengikuti Mouse ---
+  // ===================================================================
+  if (heroSection && heroGedungImg) {
+    heroSection.addEventListener("mousemove", (e) => {
+      const { clientX, clientY } = e;
+      const { innerWidth, innerHeight } = window;
+      const centerX = innerWidth / 2;
+      const centerY = innerHeight / 2;
+      const moveX = (clientX - centerX) / centerX;
+      const moveY = (clientY - centerY) / centerY;
+      const tiltIntensity = 10;
+
+      heroGedungImg.style.transform = `
+        rotateY(${moveX * tiltIntensity}deg) 
+        rotateX(${-moveY * tiltIntensity}deg)
+        scale(1.05)
+      `;
+    });
+
+    heroSection.addEventListener("mouseleave", () => {
+      heroGedungImg.style.transform = "rotateY(0) rotateX(0) scale(1)";
+    });
+
+    // Menghubungkan klik gambar ke fungsi pembuka overlay
+    heroGedungImg.addEventListener("click", openOverlay);
+  }
+  
+  // ===================================================================
+  // --- 1. Header Efek Saat Scroll ---
+  // ===================================================================
+  const handleScroll = () => {
+    if (window.scrollY > 50) {
+      headerWrap.classList.add("scrolled");
+    } else {
+      headerWrap.classList.remove("scrolled");
+    }
+  };
+  window.addEventListener("scroll", throttle(handleScroll, 100));
+
+  // ===================================================================
+  // --- 2. Navigasi Mobile ---
+  // ===================================================================
+  if (navToggle && mainNav) {
+    navToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      mainNav.classList.toggle("open");
+      navToggle.setAttribute("aria-expanded", mainNav.classList.contains("open"));
+    });
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        if (mainNav.classList.contains('open')) {
+          mainNav.classList.remove('open');
+          navToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (mainNav.classList.contains('open') && !mainNav.contains(e.target)) {
+        mainNav.classList.remove('open');
+        navToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+  
+  // ===================================================================
+  // --- 3. Logika Overlay Model 3D ---
+  // ===================================================================
+  const openOverlay = () => {
+    if (overlayIframe.src !== model3D_URL) {
+      overlayIframe.src = model3D_URL;
+    }
+    overlay.classList.add("active");
+    document.body.style.overflow = "hidden";
+  };
+  const closeOverlay = () => {
+    overlay.classList.remove("active");
+    document.body.style.overflow = "";
+    setTimeout(() => { overlayIframe.src = ""; }, 300);
+  };
+  if (openOverlayBtn1) openOverlayBtn1.addEventListener("click", openOverlay);
+  if (openOverlayBtn2) openOverlayBtn2.addEventListener("click", openOverlay);
+  if (overlayCloseBtn) overlayCloseBtn.addEventListener("click", closeOverlay);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) {
+      closeOverlay();
+    }
+  });
+
+  // ===================================================================
+  // --- 4. Animasi Scroll Reveal ---
+  // ===================================================================
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in-view");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  const animatedElements = document.querySelectorAll(".section-title, .card, .model-controls, .hero-copy");
+  animatedElements.forEach(el => revealObserver.observe(el));
+
+  // ===================================================================
+  // --- 5. Tahun Otomatis di Footer ---
+  // ===================================================================
+  const yearSpan = document.getElementById("year");
+  if (yearSpan) {
+    yearSpan.textContent = new Date().getFullYear();
+  }
+  
+  // ===================================================================
+  // --- 6. Navigasi Aktif Otomatis Saat Scroll ---
+  // ===================================================================
+  const activeNavObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const id = entry.target.getAttribute('id');
+        const activeLink = document.querySelector(`.main-nav a[href="#${id}"]`);
+        if (activeLink) {
+          activeLink.classList.add('active');
+        }
+      }
+    });
+  }, { rootMargin: '-30% 0px -70% 0px' });
+  sections.forEach(section => activeNavObserver.observe(section));
+});
+
+
+// HEADERRRRRRR
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  let letters = btn.textContent.split('');
+  btn.textContent = '';
+
+  // Bungkus setiap huruf dengan span biar bisa dianimasikan
+  letters.forEach((letter, i) => {
+    let span = document.createElement('span');
+    span.textContent = letter;
+    span.style.display = 'inline-block';
+    span.style.transition = 'transform 0.3s ease';
+    span.style.transitionDelay = `${i * 40}ms`; // delay bertingkat
+    btn.appendChild(span);
+  });
+
+  // Hover masuk → huruf naik
+  btn.addEventListener('mouseenter', () => {
+    btn.querySelectorAll('span').forEach(span => {
+      span.style.transform = 'translateY(-4px)';
+    });
+  });
+
+  // Hover keluar → huruf balik
+  btn.addEventListener('mouseleave', () => {
+    btn.querySelectorAll('span').forEach(span => {
+      span.style.transform = 'translateY(0)';
+    });
+  });
+});
+
+// ===================================================================
+// --- 8. EFEK KILAU INTERAKTIF PADA KARTU ---
+// ===================================================================
+document.querySelectorAll('.card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left; // Posisi x mouse di dalam kartu
+    const y = e.clientY - rect.top;  // Posisi y mouse di dalam kartu
+    
+    // Setel properti kustom CSS dengan posisi mouse
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+  });
+});
+

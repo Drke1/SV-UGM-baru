@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Cagar Budaya - Gedung Pantja Dharma</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.130/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.130/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+    <style>
+    html, body, #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0d1b2a, #1b263b);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #fcefdc;
+    }
+
+    /* Container utama */
+    .slider-container {
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(13, 27, 42, 0.85);
+        backdrop-filter: blur(8px);
+        padding: 18px;
+        border-radius: 14px;
+        width: 320px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .slider-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+    }
+
+    /* Hilangkan credit default Cesium */
+    .cesium-widget-credits {
+        display: none !important;
+    }
+
+    /* Legend */
+    .legend {
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 10px;
+        display: inline-block;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 0 4px rgba(255,255,255,0.3);
+    }
+    .legend strong {
+        display: block;
+        text-align: center;
+        font-size: 22px;
+        font-weight: 800;
+        color: #ffe9c6;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 12px;
+        background: rgba(77, 184, 255, 0.15);
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(77, 184, 255, 0.4);
+        box-shadow: 0 0 12px rgba(77, 184, 255, 0.6), 
+                      0 0 24px rgba(77, 184, 255, 0.3) inset;
+        text-shadow: 0 0 6px #4db8ff, 0 0 12px #74cfff;
+    }
+    .legend-subtitle {
+        font-weight: 700;
+        font-size: 18px;
+        margin-top: 16px;
+        margin-bottom: 10px;
+        color: #ffe9c6;
+        text-align: center;
+        background: rgba(77, 184, 255, 0.15);
+        padding: 6px 10px;
+        border-radius: 6px;
+        letter-spacing: 0.6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) inset;
+    }
+    .slider-block {
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+    }
+    .slider-block .slider-label {
+        width: 110px;
+        flex-shrink: 0;
+        margin-left: 5px;
+        cursor: pointer;
+        color: #ffefd5;
+        font-weight: 500;
+    }
+    .slider-block input[type="range"] {
+        width: 100%;
+        margin: 0 8px;
+        accent-color: #4db8ff;
+        cursor: pointer;
+        transition: filter 0.2s;
+    }
+    .slider-block input[type="range"]:hover {
+        filter: brightness(1.2);
+    }
+    .action-buttons {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #355070;
+        flex-shrink: 0;
+    }
+    .action-buttons button {
+        width: 100%;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 8px;
+        border: 1px solid #1b263b;
+        background: linear-gradient(135deg, #1b263b, #23374d);
+        color: #fcefdc;
+        font-size: 14px;
+        margin-top: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .action-buttons button:hover {
+        background: linear-gradient(135deg, #4db8ff, #74cfff);
+        color: #0d1b2a;
+        transform: translateY(-2px);
+    }
+    .action-buttons button:first-child {
+        margin-top: 0;
+    }
+    .fly-to-icon {
+        cursor: pointer;
+        margin-left: auto;
+        padding: 0 6px;
+        font-size: 18px;
+        filter: grayscale(1) brightness(0.85);
+        transition: filter 0.25s, transform 0.25s;
+    }
+    .fly-to-icon:hover {
+        filter: grayscale(0) brightness(1.15);
+        transform: scale(1.2) rotate(6deg);
+    }
+    input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        background-color: #1b263b;
+        border: 2px solid #4db8ff;;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        margin-right: 8px;
+        font-size: 16px;
+        transition: background-color 0.3s, border 0.3s, transform 0.2s;
+    }
+    input[type="checkbox"]:hover {
+        transform: scale(1.1);
+    }
+    input[type="checkbox"]::after {
+        content: "👁";
+        color: #0d1b2a;
+    }
+    input[type="checkbox"]:checked {
+        background: linear-gradient(135deg, #4db8ff, #74cfff);
+        border-color: #4db8ff;
+    }
+    input[type="checkbox"]:checked::after {
+        content: "👁";
+        color: #0d1b2a;
+    }
+    .legend::-webkit-scrollbar {
+        width: 8px;
+    }
+    .legend::-webkit-scrollbar-track {
+        background: #1b263b;
+        border-radius: 6px;
+    }
+    .legend::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #4db8ff, #349edc);
+        border-radius: 6px;
+    }
+    .legend::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #74cfff, #4db8ff);
+    }
+
+    /* Panel Info Kanan */
+    #info-panel {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 350px;
+        height: auto;
+        max-height: calc(100% - 20px);
+        background: rgba(13, 27, 42, 0.85);
+        backdrop-filter: blur(8px);
+        padding: 20px;
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+        transform: translateX(120%);
+        transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+    }
+    #info-panel:not(.info-panel-hidden) {
+        transform: translateX(0);
+    }
+    .close-button {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: none;
+        border: none;
+        color: #fcefdc;
+        font-size: 28px;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s, transform 0.2s;
+    }
+    .close-button:hover {
+        color: #4db8ff;
+        transform: scale(1.1);
+    }
+    #info-panel-content {
+        overflow-y: auto;
+        color: #fcefdc;
+    }
+    .info-title {
+        font-size: 1.8em;
+        font-weight: 700;
+        color: #74cfff;
+        margin-bottom: 5px;
+        text-shadow: 0 0 8px rgba(77, 184, 255, 0.7);
+    }
+    .info-subtitle {
+        font-style: italic;
+        color: #bdc3c7;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    .info-divider {
+        border: 0;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #4db8ff, transparent);
+        margin: 15px 0;
+    }
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    .info-table td {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(77, 184, 255, 0.2);
+    }
+    .info-table td:first-child {
+        font-weight: 600;
+        color: #bdc3c7;
+        width: 35%;
+    }
+    .info-image-container {
+        width: 100%;
+        margin-top: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 2px solid #4db8ff;
+        box-shadow: 0 0 15px rgba(77, 184, 255, 0.5);
+    }
+    .info-image {
+        width: 100%;
+        display: block;
+        transition: transform 0.3s ease;
+    }
+    .info-image:hover {
+        transform: scale(1.05);
+    }
+
+    /* Logo */
+    .legend-logo-container {
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid #355070;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .my-custom-logo {
+        width: 150px;
+        opacity: 0.9;
+        transition: opacity 0.3s, transform 0.3s;
+    }
+    .my-custom-logo:hover {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+
+    <div class="slider-container">
+        <div class="legend">
+            <strong>Legenda</strong>
+            
+            <div class="legend-subtitle">Gedung</div>
+            
+            <div class="slider-block">
+                <input type="checkbox" id="toggleTjahjanaAdi" checked style="cursor: pointer;">
+                <label for="clipRange1" class="slider-label">Tjahjana Adi</label>
+                <input type="range" id="clipRange1" min="0" max="100" step="1" value="100">
+                <span id="clipValue1">100%</span>
+                <span id="flyToTjahjanaAdi" class="fly-to-icon" title="Zoom ke Gedung Tjahjana Adi">🔍</span>
+            </div>
+            
+            <div class="slider-block">
+                <input type="checkbox" id="toggleHermanYohannes" checked style="cursor: pointer;">
+                <label for="clipRange2" class="slider-label">Herman Yohannes</label>
+                <input type="range" id="clipRange2" min="0" max="100" step="1" value="100">
+                <span id="clipValue2">100%</span>
+                <span id="flyToHermanYohannes" class="fly-to-icon" title="Zoom ke Gedung Herman Yohannes">🔍</span>
+            </div>
+            
+            <div class="slider-block">
+                <input type="checkbox" id="toggleDaruslan" checked style="cursor: pointer;">
+                <label for="clipRange3" class="slider-label">Daruslan</label>
+                <input type="range" id="clipRange3" min="0" max="100" step="1" value="100">
+                <span id="clipValue3">100%</span>
+                <span id="flyToDaruslan" class="fly-to-icon" title="Zoom ke Gedung Daruslan">🔍</span>
+            </div>
+            
+            <div class="slider-block">
+                <input type="checkbox" id="toggleSoeparwi" checked style="cursor: pointer;">
+                <label for="clipRange4" class="slider-label">Soeparwi</label>
+                <input type="range" id="clipRange4" min="0" max="100" step="1" value="100">
+                <span id="clipValue4">100%</span>
+                <span id="flyToSoeparwi" class="fly-to-icon" title="Zoom ke Gedung Soeparwi">🔍</span>
+            </div>
+
+            <div class="slider-block">
+                <input type="checkbox" id="togglePerpustakaan" checked style="cursor: pointer;">
+                <label for="clipRange5" class="slider-label">Perpustakaan</label>
+                <input type="range" id="clipRange5" min="0" max="100" step="1" value="100">
+                <span id="clipValue5">100%</span>
+                <span id="flyToPerpustakaan" class="fly-to-icon" title="Zoom ke Gedung Perpustakaan">🔍</span>
+            </div>
+
+            <div class="slider-block">
+                <input type="checkbox" id="toggleIsoRekso" checked style="cursor: pointer;">
+                <label for="clipRange6" class="slider-label">Iso Reksohadiprodjo</label>
+                <input type="range" id="clipRange6" min="0" max="100" step="1" value="100">
+                <span id="clipValue6">100%</span>
+                <span id="flyToIsoRekso" class="fly-to-icon" title="Zoom ke Gedung Iso Reksohadiprodjo">🔍</span>
+            </div>
+
+            <div class="legend-subtitle">Layer Peta</div>
+            <div class="legend-item">
+                <input type="checkbox" id="toggleJalan" checked style="cursor: pointer;">
+                <span class="legend-color" style="background-color: cyan; margin-left: 5px;"></span>
+                <label for="toggleJalan" style="cursor: pointer;">Jalan</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="toggleAreaSV" checked style="cursor: pointer;">
+                <span class="legend-color" style="background-color: CORAL; margin-left: 5px;"></span>
+                <label for="toggleAreaSV" style="cursor: pointer;">Area Sekolah Vokasi</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="togglePohonAman" checked style="cursor: pointer;">
+                <span class="legend-color" style="background-color: limegreen; margin-left: 5px;"></span>
+                <label for="togglePohonAman" style="cursor: pointer;">Status Pohon Aman</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="togglePohonPerawatan" checked style="cursor: pointer;">
+                <span class="legend-color" style="background-color: yellow; margin-left: 5px;"></span>
+                <label for="togglePohonPerawatan" style="cursor: pointer;">Status Pohon Perlu Perawatan</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="toggleBukanInventaris" checked style="cursor: pointer;">
+                <span class="legend-color" style="background-color: dodgerblue; margin-left: 5px;"></span>
+                <label for="toggleBukanInventaris" style="cursor: pointer;">Bukan Inventarisasi Aset</label>
+            </div>
+            <div class="legend-item">
+                <input type="checkbox" id="toggleStatusTidakAda" checked style="cursor: pointer;">
+                <span class="legend-color" style="background-color: red; margin-left: 5px;"></span>
+                <label for="toggleStatusTidakAda" style="cursor: pointer;">Tidak Ada Informasi Status</label>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="resetCameraButton">Reset Tampilan</button>
+            <button id="measureDistanceButton">Ukur Jarak</button>
+            <button id="clearMeasurementsButton">Hapus Ukuran</button>
+        </div>
+        
+        <div class="legend-logo-container">
+            <a href="https://sv.ugm.ac.id" target="_blank">
+                <img class="my-custom-logo" src="logo-SV-UGM-2id.png" alt="Logo SV UGM">
+            </a>
+        </div>
+    </div>
+
+    <div id="info-panel" class="info-panel-hidden">
+        <button id="close-info-panel" class="close-button">&times;</button>
+        <div id="info-panel-content"></div>
+    </div>
+
+    <script src="data/Pohon.js"></script>
+    <script src="data/Pohon_Perlu_Perawatan.js"></script>
+    <script src="data/Bukan_Inventarisasi_Direktorat.js"></script>
+    <script src="data/Tidak_Ada_Informasi_Status.js"></script>
+    <script src="data/Area_SV.js"></script>
+    <script src="data/Gedung_SV.js"></script>
+    <script src="data/Jalan_SV.js"></script>
+    
+    <script type="module">
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlN2EzZmQyZS0xMTBlLTQxM2EtYWU5Ny02MDk1MWYzYWRiNmMiLCJpZCI6MzA1NDUzLCJpYXQiOjE3NjU2NDg4NTR9.yAmGtiniTQ95rgkkMjp3xppir_P0tamzo6KZA7MK-1s';
+
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            infoBox: false,
+            terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+            animation: false, timeline: false, homeButton: false, sceneModePicker: false,
+            geocoder: true, baseLayerPicker: false, navigationHelpButton: true, fullscreenButton: true,
+            creditContainer: document.createElement("div")
+        });
+
+        const initialDestination = Cesium.Cartesian3.fromDegrees(110.37394, -7.77463, 400);
+        const initialOrientation = {
+            heading: Cesium.Math.toRadians(0.0), pitch: Cesium.Math.toRadians(-90.0), roll: 0.0
+        };
+        viewer.camera.flyTo({ destination: initialDestination, orientation: initialOrientation });
+        
+        let tileset1, tileset2, tileset3, tileset4, tileset5, tileset6;
+        const jalanPrimitives = [];
+        const areaSVPrimitives = [];
+        let pohonAmanDataSource, pohonPerawatanDataSource, pohonBiruDataSource, pohonTidakAdaDataSource;
+
+        const buildingViews = {
+            'TjahjanaAdi': {
+                destination: Cesium.Cartesian3.fromDegrees(110.3735, -7.7751, 150),
+                orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-90.0) }
+            },
+            'HermanYohannes': {
+                destination: Cesium.Cartesian3.fromDegrees(110.37407, -7.77537, 150),
+                orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-90.0) }
+            },
+            'Daruslan': {
+                destination: Cesium.Cartesian3.fromDegrees(110.37356, -7.77448, 150),
+                orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-90.0) }
+            },
+            'Soeparwi': {
+                destination: Cesium.Cartesian3.fromDegrees(110.3739, -7.77383, 150),
+                orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-90.0) }
+            },
+            'Perpustakaan': {
+                destination: Cesium.Cartesian3.fromDegrees(110.374395, -7.774749, 150), 
+                orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-90.0) }
+            },
+            'IsoRekso': {
+                destination: Cesium.Cartesian3.fromDegrees(110.3742, -7.7742, 150), 
+                orientation: { heading: Cesium.Math.toRadians(0), pitch: Cesium.Math.toRadians(-90.0) }
+            }
+        };
+        
+        function flyToBuilding(view) {
+            viewer.camera.flyTo({
+                destination: view.destination,
+                orientation: view.orientation,
+                duration: 1.5
+            });
+        }
+        
+        document.getElementById('flyToTjahjanaAdi').addEventListener('click', () => flyToBuilding(buildingViews.TjahjanaAdi));
+        document.getElementById('flyToHermanYohannes').addEventListener('click', () => flyToBuilding(buildingViews.HermanYohannes));
+        document.getElementById('flyToDaruslan').addEventListener('click', () => flyToBuilding(buildingViews.Daruslan));
+        document.getElementById('flyToSoeparwi').addEventListener('click', () => flyToBuilding(buildingViews.Soeparwi));
+        document.getElementById('flyToPerpustakaan').addEventListener('click', () => flyToBuilding(buildingViews.Perpustakaan));
+        document.getElementById('flyToIsoRekso').addEventListener('click', () => flyToBuilding(buildingViews.IsoRekso));
+
+        const buildingMaxHeights = {
+            tjahjanaAdi: 15.0,
+            hermanYohannes: 15.0,
+            daruslan: 20.0,
+            soeparwi: 15.0,
+            perpustakaan: 20.0,
+            isoRekso: 20.0
+        };
+
+        // --- Gedung 1: Tjahjana Adi ---
+        tileset1 = await Cesium.Cesium3DTileset.fromIonAssetId(3762695);
+        const clippingPlanes1 = new Cesium.ClippingPlaneCollection({
+            planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), buildingMaxHeights.tjahjanaAdi)],
+            unionClippingRegions: false
+        });
+        tileset1.clippingPlanes = clippingPlanes1;
+        viewer.scene.primitives.add(tileset1);
+        const slider1 = document.getElementById("clipRange1");
+        const clipValue1 = document.getElementById("clipValue1");
+        slider1.addEventListener("input", function() {
+            const percentage = parseFloat(slider1.value);
+            const distance = (percentage / 100.0) * buildingMaxHeights.tjahjanaAdi;
+            clippingPlanes1.get(0).distance = distance;
+            clipValue1.textContent = percentage + "%";
+        });
+
+        // --- Gedung 2: Herman Yohannes ---
+        tileset2 = await Cesium.Cesium3DTileset.fromIonAssetId(3766783);
+        const clippingPlanes2 = new Cesium.ClippingPlaneCollection({
+            planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), buildingMaxHeights.hermanYohannes)],
+            unionClippingRegions: false
+        });
+        tileset2.clippingPlanes = clippingPlanes2;
+        viewer.scene.primitives.add(tileset2);
+        const slider2 = document.getElementById("clipRange2");
+        const clipValue2 = document.getElementById("clipValue2");
+        slider2.addEventListener("input", function() {
+            const percentage = parseFloat(slider2.value);
+            const distance = (percentage / 100.0) * buildingMaxHeights.hermanYohannes;
+            clippingPlanes2.get(0).distance = distance;
+            clipValue2.textContent = percentage + "%";
+        });
+
+        // --- Gedung 3: Daruslan ---
+        tileset3 = await Cesium.Cesium3DTileset.fromIonAssetId(3766778);
+        const clippingPlanes3 = new Cesium.ClippingPlaneCollection({
+            planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), buildingMaxHeights.daruslan)],
+            unionClippingRegions: false
+        });
+        tileset3.clippingPlanes = clippingPlanes3;
+        viewer.scene.primitives.add(tileset3);
+        const slider3 = document.getElementById("clipRange3");
+        const clipValue3 = document.getElementById("clipValue3");
+        slider3.addEventListener("input", function() {
+            const percentage = parseFloat(slider3.value);
+            const distance = (percentage / 100.0) * buildingMaxHeights.daruslan;
+            clippingPlanes3.get(0).distance = distance;
+            clipValue3.textContent = percentage + "%";
+        });
+
+        // --- Gedung 4: Soeparwi ---
+        tileset4 = await Cesium.Cesium3DTileset.fromIonAssetId(3762043);
+        const clippingPlanes4 = new Cesium.ClippingPlaneCollection({
+            planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), buildingMaxHeights.soeparwi)],
+            unionClippingRegions: false
+        });
+        tileset4.clippingPlanes = clippingPlanes4;
+        viewer.scene.primitives.add(tileset4);
+        const slider4 = document.getElementById("clipRange4");
+        const clipValue4 = document.getElementById("clipValue4");
+        slider4.addEventListener("input", function() {
+            const percentage = parseFloat(slider4.value);
+            const distance = (percentage / 100.0) * buildingMaxHeights.soeparwi;
+            clippingPlanes4.get(0).distance = distance;
+            clipValue4.textContent = percentage + "%";
+        });
+
+        // --- Gedung 5: Perpustakaan (FIXED LOGIC MAPPING) ---
+        tileset5 = await Cesium.Cesium3DTileset.fromIonAssetId(4215107);
+        
+        // Define Raw Limits (Range 778 - 890)
+        const minRaw = 778;
+        const maxRaw = 890;
+        const rangeRaw = maxRaw - minRaw;
+
+        // Calculate initial distance based on MAX raw (890) so building is visible
+        const initialRaw = maxRaw; 
+        const initialDist = (initialRaw / 100.0) * buildingMaxHeights.perpustakaan;
+
+        const clippingPlanes5 = new Cesium.ClippingPlaneCollection({
+            planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), initialDist)],
+            unionClippingRegions: false
+        });
+        tileset5.clippingPlanes = clippingPlanes5;
+        viewer.scene.primitives.add(tileset5);
+
+        const slider5 = document.getElementById("clipRange5");
+        const clipValue5 = document.getElementById("clipValue5");
+        
+        slider5.addEventListener("input", function() {
+            // Visual Input: 0 to 100
+            const visualVal = parseFloat(slider5.value);
+            
+            // Map 0-100 to 778-890
+            const rawVal = minRaw + ((visualVal / 100.0) * rangeRaw);
+
+            // Apply Original Logic: (Raw / 100) * Height
+            const distance = (rawVal / 100.0) * buildingMaxHeights.perpustakaan;
+            
+            clippingPlanes5.get(0).distance = distance;
+            clipValue5.textContent = visualVal + "%";
+        });
+
+        // --- Gedung 6: Iso Reksohadiprodjo ---
+        tileset6 = await Cesium.Cesium3DTileset.fromIonAssetId(4352529);
+        const clippingPlanes6 = new Cesium.ClippingPlaneCollection({
+            planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0.0, 0.0, -1.0), buildingMaxHeights.isoRekso)],
+            unionClippingRegions: false
+        });
+        tileset6.clippingPlanes = clippingPlanes6;
+        viewer.scene.primitives.add(tileset6);
+        const slider6 = document.getElementById("clipRange6");
+        const clipValue6 = document.getElementById("clipValue6");
+        slider6.addEventListener("input", function() {
+            const percentage = parseFloat(slider6.value);
+            const distance = (percentage / 100.0) * buildingMaxHeights.isoRekso;
+            clippingPlanes6.get(0).distance = distance;
+            clipValue6.textContent = percentage + "%";
+        });
+
+        // --- Button Reset Camera ---
+        document.getElementById("resetCameraButton").addEventListener("click", function() {
+            viewer.camera.flyTo({
+                destination: initialDestination,
+                orientation: initialOrientation,
+                duration: 1.5
+            });
+        });
+        
+        // --- Toggle Checkboxes ---
+        document.getElementById("toggleTjahjanaAdi").addEventListener("change", function(event) {
+            const isChecked = event.target.checked;
+            if (tileset1) { tileset1.show = isChecked; }
+            slider1.disabled = !isChecked;
+        });
+        document.getElementById("toggleHermanYohannes").addEventListener("change", function(event) {
+            const isChecked = event.target.checked;
+            if (tileset2) { tileset2.show = isChecked; }
+            slider2.disabled = !isChecked;
+        });
+        document.getElementById("toggleDaruslan").addEventListener("change", function(event) {
+            const isChecked = event.target.checked;
+            if (tileset3) { tileset3.show = isChecked; }
+            slider3.disabled = !isChecked;
+        });
+        document.getElementById("toggleSoeparwi").addEventListener("change", function(event) {
+            const isChecked = event.target.checked;
+            if (tileset4) { tileset4.show = isChecked; }
+            slider4.disabled = !isChecked;
+        });
+        document.getElementById("togglePerpustakaan").addEventListener("change", function(event) {
+            const isChecked = event.target.checked;
+            if (tileset5) { tileset5.show = isChecked; }
+            slider5.disabled = !isChecked;
+        });
+        document.getElementById("toggleIsoRekso").addEventListener("change", function(event) {
+            const isChecked = event.target.checked;
+            if (tileset6) { tileset6.show = isChecked; }
+            slider6.disabled = !isChecked;
+        });
+
+        // --- Label Gedung ---
+        const gedungLabels = [
+            { name: 'Gedung Soeparwi', lon: 110.3739, lat: -7.77383, height: 20 },
+            { name: 'Gedung Daruslan', lon: 110.3735659687165, lat: -7.774484061886696, height: 20 },
+            { name: 'Gedung Tjahjana Adi', lon: 110.3735, lat: -7.7751, height: 20 },
+            { name: 'Gedung Herman Yohannes', lon: 110.37407, lat: -7.7753737, height: 20 },
+            { name: 'Gedung Perpustakaan', lon: 110.374395, lat: -7.774749, height: 20 },
+            { name: 'Gedung Iso Reksohadiprodjo', lon: 110.374554, lat: -7.77412, height: 20 }
+        ];
+
+        gedungLabels.forEach(gedung => {
+            viewer.entities.add({
+                position: Cesium.Cartesian3.fromDegrees(gedung.lon, gedung.lat, gedung.height),
+                label: { text: gedung.name, font: 'bold 16px sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, pixelOffset: new Cesium.Cartesian2(0, -10), disableDepthTestDistance: Number.POSITIVE_INFINITY }
+            });
+        });
+
+        // --- Logic Pengukuran ---
+        const measureControl = { handler: null, entities: [], positions: [], polyline: null, label: null };
+        function clearMeasureEntities() {
+            for (let i = 0; i < measureControl.entities.length; i++) { viewer.entities.remove(measureControl.entities[i]); }
+            measureControl.entities = []; measureControl.positions = [];
+            if (measureControl.polyline) { viewer.entities.remove(measureControl.polyline); measureControl.polyline = null; }
+            if (measureControl.label) { viewer.entities.remove(measureControl.label); measureControl.label = null; }
+            if (measureControl.handler) { try { measureControl.handler.destroy(); } catch (e) {} measureControl.handler = null; }
+        }
+        function startMeasureDistance() {
+            clearMeasureEntities();
+            measureControl.handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            measureControl.handler.setInputAction(function (click) {
+                const picked = viewer.scene.pickPosition(click.position); if (!Cesium.defined(picked)) return;
+                measureControl.positions.push(picked);
+                const pt = viewer.entities.add({ position: picked, point: { pixelSize: 7, color: Cesium.Color.YELLOW, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 } });
+                measureControl.entities.push(pt);
+                if (measureControl.positions.length > 1) {
+                    if (measureControl.polyline) { viewer.entities.remove(measureControl.polyline); measureControl.polyline = null; }
+                    measureControl.polyline = viewer.entities.add({ polyline: { positions: measureControl.positions.slice(), width: 3, material: Cesium.Color.YELLOW } });
+                    measureControl.entities.push(measureControl.polyline);
+                    let total = 0;
+                    for (let i = 1; i < measureControl.positions.length; i++) { total += Cesium.Cartesian3.distance(measureControl.positions[i - 1], measureControl.positions[i]); }
+                    if (measureControl.label) { viewer.entities.remove(measureControl.label); measureControl.label = null; }
+                    const lastPos = measureControl.positions[measureControl.positions.length - 1];
+                    measureControl.label = viewer.entities.add({ position: lastPos, label: { text: total.toFixed(2) + " m", font: "14px sans-serif", fillColor: Cesium.Color.WHITE, showBackground: true, backgroundColor: Cesium.Color.BLACK.withAlpha(0.6), pixelOffset: new Cesium.Cartesian2(0, -20) } });
+                    measureControl.entities.push(measureControl.label);
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            measureControl.handler.setInputAction(function () {
+                if (measureControl.handler) { try { measureControl.handler.destroy(); } catch (e) {} measureControl.handler = null; }
+            }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+        }
+        const measureBtn = document.getElementById("measureDistanceButton");
+        const clearBtn = document.getElementById("clearMeasurementsButton");
+        if (measureBtn) measureBtn.addEventListener("click", function () { startMeasureDistance(); });
+        if (clearBtn) clearBtn.addEventListener("click", function () { clearMeasureEntities(); });
+        
+        // --- Data Area & Jalan ---
+        const promiseAreaSV = Cesium.GeoJsonDataSource.load(Area_SV);
+        promiseAreaSV.then(function(loadedDataSource) {
+            const entities = loadedDataSource.entities.values;
+            for (let i = 0; i < entities.length; i++) {
+                const originalEntity = entities[i];
+                const polygonInstance = new Cesium.GeometryInstance({
+                    geometry: new Cesium.PolygonGeometry({ polygonHierarchy: originalEntity.polygon.hierarchy.getValue() }),
+                    attributes: { color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.CORAL.withAlpha(0.2)) }
+                });
+                const groundPolygon = new Cesium.GroundPrimitive({
+                    geometryInstances: [polygonInstance],
+                    appearance: new Cesium.PerInstanceColorAppearance({ flat: true }),
+                    classificationType: Cesium.ClassificationType.TERRAIN
+                });
+                areaSVPrimitives.push(groundPolygon);
+                viewer.scene.primitives.add(groundPolygon);
+            }
+        }).catch(function(error){ console.error("Gagal memuat data Area SV: ", error); });
+        
+        const promiseJalanSV = Cesium.GeoJsonDataSource.load(Jalan_SV);
+        promiseJalanSV.then(function(loadedDataSource) {
+            const entities = loadedDataSource.entities.values;
+            for (let i = 0; i < entities.length; i++) {
+                const entity = entities[i];
+                const polygonHierarchy = entity.polygon.hierarchy.getValue();
+                const polygonInstance = new Cesium.GeometryInstance({
+                    geometry: new Cesium.PolygonGeometry({ polygonHierarchy: polygonHierarchy }),
+                    attributes: { color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.CYAN.withAlpha(0.1)) }
+                });
+                const groundPolygon = new Cesium.GroundPrimitive({
+                    geometryInstances: [polygonInstance],
+                    appearance: new Cesium.PerInstanceColorAppearance({ flat: true }),
+                    classificationType: Cesium.ClassificationType.TERRAIN
+                });
+                jalanPrimitives.push(groundPolygon);
+                viewer.scene.primitives.add(groundPolygon);
+            }
+        }).catch(function(error){ console.error("Gagal memuat data Jalan SV: ", error); });
+
+        // --- Data Pohon ---
+        function prosesDataPohon(dataSourcePromise) {
+            return dataSourcePromise.then(function(dataSource) {
+                viewer.dataSources.add(dataSource);
+                const entities = dataSource.entities.values;
+                for (let i = 0; i < entities.length; i++) {
+                    const entity = entities[i];
+                    const status = entity.properties.status_phn.getValue();
+                    let warnaTitik;
+                    if (status === 'hijau') warnaTitik = Cesium.Color.LIMEGREEN;
+                    else if (status === 'kuning') warnaTitik = Cesium.Color.YELLOW;
+                    else if (status === 'biru') warnaTitik = Cesium.Color.DODGERBLUE;
+                    else warnaTitik = Cesium.Color.RED;
+                    entity.point = new Cesium.PointGraphics({
+                        pixelSize: 5, color: warnaTitik, outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                    });
+                    const opacityLevel = 0.5; 
+                    entity.point.color = entity.point.color.getValue().withAlpha(opacityLevel);
+                    entity.point.outlineColor = entity.point.outlineColor.getValue().withAlpha(opacityLevel);
+                }
+                return dataSource;
+            }).catch(function(error) {
+                console.error("Gagal memuat data pohon: ", error);
+            });
+        }
+
+        prosesDataPohon(Cesium.GeoJsonDataSource.load(pohonData)).then(ds => pohonAmanDataSource = ds);
+        prosesDataPohon(Cesium.GeoJsonDataSource.load(pohonPerluPerawatanData)).then(ds => pohonPerawatanDataSource = ds);
+        prosesDataPohon(Cesium.GeoJsonDataSource.load(pohonBiruData)).then(ds => pohonBiruDataSource = ds);
+        prosesDataPohon(Cesium.GeoJsonDataSource.load(Tidak_Ada_Informasi_Status)).then(ds => pohonTidakAdaDataSource = ds);
+
+        // --- Toggle Layers ---
+        document.getElementById("toggleJalan").addEventListener("change", function(e) {
+            const isChecked = e.target.checked;
+            for (let i = 0; i < jalanPrimitives.length; i++) {
+                jalanPrimitives[i].show = isChecked;
+            }
+        });
+        document.getElementById("toggleAreaSV").addEventListener("change", function(e) {
+            const isChecked = e.target.checked;
+            for (let i = 0; i < areaSVPrimitives.length; i++) {
+                areaSVPrimitives[i].show = isChecked;
+            }
+        });
+
+        document.getElementById("togglePohonAman").addEventListener("change", function(e) {
+            if (pohonAmanDataSource) { pohonAmanDataSource.show = e.target.checked; }
+        });
+        document.getElementById("togglePohonPerawatan").addEventListener("change", function(e) {
+            if (pohonPerawatanDataSource) { pohonPerawatanDataSource.show = e.target.checked; }
+        });
+        document.getElementById("toggleBukanInventaris").addEventListener("change", function(e) {
+            if (pohonBiruDataSource) { pohonBiruDataSource.show = e.target.checked; }
+        });
+        document.getElementById("toggleStatusTidakAda").addEventListener("change", function(e) {
+            if (pohonTidakAdaDataSource) { pohonTidakAdaDataSource.show = e.target.checked; }
+        });
+
+        // --- Panel Info & Interaction ---
+        const infoPanel = document.getElementById('info-panel');
+        const infoPanelContent = document.getElementById('info-panel-content');
+        const closeInfoPanelButton = document.getElementById('close-info-panel');
+        const closeInfoPanel = () => {
+            infoPanel.classList.add('info-panel-hidden');
+        };
+        closeInfoPanelButton.addEventListener('click', closeInfoPanel);
+        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+        handler.setInputAction(function(movement) {
+            const pickedObject = viewer.scene.pick(movement.position);
+            if (!Cesium.defined(pickedObject)) {
+                closeInfoPanel();
+                return;
+            }
+            if (pickedObject.id instanceof Cesium.Entity) {
+                const entity = pickedObject.id;
+                const properties = entity.properties;
+                let htmlContent = ``;
+
+                if (Cesium.defined(entity.point)) {
+                    const namaPohon = properties.nama_phn ? properties.nama_phn.getValue() : 'Nama Tidak Diketahui';
+                    const namaIlmiah = properties.ilmiah_phn ? properties.ilmiah_phn.getValue() : 'N/A';
+                    const tinggi = properties.tinggi_phn ? properties.tinggi_phn.getValue() + ' m' : 'N/A';
+                    const status = properties.status_phn ? properties.status_phn.getValue() : 'N/A';
+                    const kode = properties.kode ? properties.kode.getValue() : 'N/A';
+                    const imageUrl = properties.image_url ? properties.image_url.getValue() : null;
+
+                    htmlContent = `
+                        <h2 class="info-title">${namaPohon}</h2>
+                        <p class="info-subtitle">${namaIlmiah}</p>
+                        <hr class="info-divider">
+                        <table class="info-table">
+                            <tr><td><strong>Tinggi</strong></td><td>${tinggi}</td></tr>
+                            <tr><td><strong>Status</strong></td><td>${status}</td></tr>
+                            <tr><td><strong>Kode</strong></td><td>${kode}</td></tr>
+                        </table>
+                    `;
+
+                    if (imageUrl) {
+                        htmlContent += `
+                            <div class="info-image-container">
+                                <a href="${imageUrl}" target="_blank">
+                                    <img src="${imageUrl}" class="info-image" alt="Gambar ${namaPohon}">
+                                </a>
+                            </div>
+                        `;
+                    }
+                } else if (Cesium.defined(entity.polygon)) {
+                    const namaArea = properties.nama_area ? properties.nama_area.getValue() : 'N/A';
+                    const idArea = properties.id ? properties.id.getValue() : 'N/A';
+                    
+                    htmlContent = `
+                        <h2 class="info-title">Informasi Area</h2>
+                        <hr class="info-divider">
+                        <table class="info-table">
+                            <tr><td><strong>Nama Area</strong></td><td>${namaArea}</td></tr>
+                            <tr><td><strong>ID</strong></td><td>${idArea}</td></tr>
+                        </table>
+                    `;
+                }
+
+                if (htmlContent) {
+                    infoPanelContent.innerHTML = htmlContent;
+                    infoPanel.classList.remove('info-panel-hidden');
+                } else {
+                    closeInfoPanel();
+                }
+            } else {
+                closeInfoPanel();
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    </script>
+</body>
+</html>
